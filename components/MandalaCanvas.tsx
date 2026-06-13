@@ -65,12 +65,34 @@ export default function MandalaCanvas({
     const cy = window.innerHeight / 2;
     const angleStep = (Math.PI * 2) / symmetry;
 
-    ctx.globalAlpha = blendMode === "source-over" ? 1.0 : 0.4;
+    // Ink — solid pen, no effects
+    if (blendMode === "source-over") {
+      ctx.globalAlpha = 1.0;
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
+      ctx.globalCompositeOperation = "source-over";
+    }
+
+    // Glow — soft diffuse bloom, like bioluminescence
+    else if (blendMode === "screen") {
+      ctx.globalAlpha = 0.2;
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = brushColor;
+      ctx.globalCompositeOperation = "screen";
+    }
+
+    // Neon — sharp electric light, clips to white if pushed
+    else {
+      ctx.globalAlpha = 0.5;
+      ctx.shadowBlur = 0;
+      ctx.shadowColor = "transparent";
+      ctx.globalCompositeOperation = "lighter";
+    }
+
     ctx.strokeStyle = brushColor;
     ctx.lineWidth = brushSize;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.globalCompositeOperation = blendMode;
 
     // The local stroke coords, relative to canvas center
     const fx = from.x - cx;
