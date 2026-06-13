@@ -67,7 +67,7 @@ export default function MandalaCanvas({
     ctx.lineWidth = brushSize;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.globalCompositeOperation = "lighter";
+    ctx.globalCompositeOperation = "screen";
 
     // The local stroke coords, relative to canvas center
     const fx = from.x - cx;
