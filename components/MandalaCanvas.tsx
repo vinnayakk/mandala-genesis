@@ -8,6 +8,7 @@ type Props = {
   brushSize: number;
   brushColor: string;
   clearSignal: number;
+  blendMode: "source-over" | "screen" | "lighter";
 };
 
 export default function MandalaCanvas({
@@ -15,6 +16,7 @@ export default function MandalaCanvas({
   brushSize,
   brushColor,
   clearSignal,
+  blendMode,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
@@ -63,11 +65,12 @@ export default function MandalaCanvas({
     const cy = window.innerHeight / 2;
     const angleStep = (Math.PI * 2) / symmetry;
 
+    ctx.globalAlpha = blendMode === "source-over" ? 1.0 : 0.4;
     ctx.strokeStyle = brushColor;
     ctx.lineWidth = brushSize;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.globalCompositeOperation = "screen";
+    ctx.globalCompositeOperation = blendMode;
 
     // The local stroke coords, relative to canvas center
     const fx = from.x - cx;

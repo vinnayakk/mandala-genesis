@@ -4,11 +4,14 @@ import { useState, useCallback } from "react";
 import MandalaCanvas from "@/components/MandalaCanvas";
 import Controls from "@/components/Controls";
 
+export type BlendMode = "source-over" | "screen" | "lighter";
+
 export default function Home() {
   const [symmetry, setSymmetry] = useState(12);
   const [brushSize, setBrushSize] = useState(3);
   const [brushColor, setBrushColor] = useState("#e8d5b7");
   const [clearSignal, setClearSignal] = useState(0);
+  const [blendMode, setBlendMode] = useState<BlendMode>("source-over");
 
   const handleClear = useCallback(() => {
     setClearSignal((n) => n + 1);
@@ -30,6 +33,7 @@ export default function Home() {
         brushSize={brushSize}
         brushColor={brushColor}
         clearSignal={clearSignal}
+        blendMode={blendMode}
       />
       <Controls
         symmetry={symmetry}
@@ -38,6 +42,8 @@ export default function Home() {
         setBrushSize={setBrushSize}
         brushColor={brushColor}
         setBrushColor={setBrushColor}
+        blendMode={blendMode}
+        setBlendMode={setBlendMode}
         onClear={handleClear}
         onSave={handleSave}
       />

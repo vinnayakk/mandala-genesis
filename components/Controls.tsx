@@ -1,5 +1,7 @@
 "use client";
 
+import { BlendMode } from "@/app/page";
+
 type Props = {
   symmetry: number;
   setSymmetry: (n: number) => void;
@@ -7,9 +9,17 @@ type Props = {
   setBrushSize: (n: number) => void;
   brushColor: string;
   setBrushColor: (c: string) => void;
+  blendMode: BlendMode;
+  setBlendMode: (m: BlendMode) => void;
   onClear: () => void;
   onSave: () => void;
 };
+
+const BLEND_MODES: { value: BlendMode; label: string }[] = [
+  { value: "source-over", label: "Ink" },
+  { value: "screen", label: "Glow" },
+  { value: "lighter", label: "Neon" },
+];
 
 export default function Controls({
   symmetry,
@@ -18,6 +28,8 @@ export default function Controls({
   setBrushSize,
   brushColor,
   setBrushColor,
+  blendMode,
+  setBlendMode,
   onClear,
   onSave,
 }: Props) {
@@ -66,6 +78,25 @@ export default function Controls({
           className="w-full h-8 bg-transparent border border-neutral-700 rounded cursor-pointer"
         />
       </label>
+
+      <div className="block">
+        <div className="mb-1">Stroke style</div>
+        <div className="flex rounded border border-neutral-700 overflow-hidden">
+          {BLEND_MODES.map(({ value, label }) => (
+            <button
+              key={value}
+              onClick={() => setBlendMode(value)}
+              className={`flex-1 py-1.5 transition-colors text-center ${
+                blendMode === value
+                  ? "bg-neutral-100 text-neutral-900"
+                  : "hover:bg-neutral-800 text-neutral-400"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="flex gap-2 pt-2">
         <button
