@@ -1,18 +1,24 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
 
 type Point = { x: number; y: number };
+type Props = {
+  symmetry: number;
+  brushSize: number;
+  brushColor: string;
+  clearSignal: number;
+};
 
-export default function MandalaCanvas() {
+export default function MandalaCanvas({
+  symmetry,
+  brushSize,
+  brushColor,
+  clearSignal,
+}: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
   const lastPos = useRef<Point | null>(null);
-
-  // Phase 1B uses fixed defaults. Phase 1C will wire these to controls.
-  const symmetry = 12;
-  const brushSize = 3;
-  const brushColor = "#e8d5b7";
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -32,6 +38,17 @@ export default function MandalaCanvas() {
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
   }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }, [clearSignal]);
 
   const getPos = (e: React.PointerEvent): Point => {
     const rect = canvasRef.current!.getBoundingClientRect();
