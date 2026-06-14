@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import MandalaCanvas from "@/components/MandalaCanvas";
 import Controls from "@/components/Controls";
+import RDCanvas from "@/components/RDCanvas";
 
 export type BlendMode = "source-over" | "screen" | "lighter";
 
@@ -35,6 +36,7 @@ export default function Home() {
         clearSignal={clearSignal}
         blendMode={blendMode}
       />
+      <RDCanvas />
       <Controls
         symmetry={symmetry}
         setSymmetry={setSymmetry}
