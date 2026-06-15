@@ -9,6 +9,8 @@ type Props = {
   brushColor: string;
   clearSignal: number;
   blendMode: "source-over" | "screen" | "lighter";
+  onStroke?: (fromX: number, fromY: number, toX: number, toY: number) => void;
+  onDrawingChange?: (active: boolean) => void;
 };
 
 export default function MandalaCanvas({
@@ -17,6 +19,8 @@ export default function MandalaCanvas({
   brushColor,
   clearSignal,
   blendMode,
+  onStroke,
+  onDrawingChange,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
@@ -65,24 +69,17 @@ export default function MandalaCanvas({
     const cy = window.innerHeight / 2;
     const angleStep = (Math.PI * 2) / symmetry;
 
-    // Ink — solid pen, no effects
     if (blendMode === "source-over") {
       ctx.globalAlpha = 1.0;
       ctx.shadowBlur = 0;
       ctx.shadowColor = "transparent";
       ctx.globalCompositeOperation = "source-over";
-    }
-
-    // Glow — soft diffuse bloom, like bioluminescence
-    else if (blendMode === "screen") {
+    } else if (blendMode === "screen") {
       ctx.globalAlpha = 0.2;
       ctx.shadowBlur = 20;
       ctx.shadowColor = brushColor;
       ctx.globalCompositeOperation = "screen";
-    }
-
-    // Neon — sharp electric light, clips to white if pushed
-    else {
+    } else {
       ctx.globalAlpha = 0.5;
       ctx.shadowBlur = 0;
       ctx.shadowColor = "transparent";
@@ -94,7 +91,6 @@ export default function MandalaCanvas({
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // The local stroke coords, relative to canvas center
     const fx = from.x - cx;
     const fy = from.y - cy;
     const tx = to.x - cx;
@@ -105,13 +101,11 @@ export default function MandalaCanvas({
       ctx.translate(cx, cy);
       ctx.rotate(angleStep * i);
 
-      // Original wedge
       ctx.beginPath();
       ctx.moveTo(fx, fy);
       ctx.lineTo(tx, ty);
       ctx.stroke();
 
-      // Mirrored wedge (true kaleidoscope, like the Processing original)
       ctx.scale(-1, 1);
       ctx.beginPath();
       ctx.moveTo(fx, fy);
@@ -125,18 +119,22 @@ export default function MandalaCanvas({
   const onPointerDown = (e: React.PointerEvent) => {
     isDrawing.current = true;
     lastPos.current = getPos(e);
+    onDrawingChange?.(true);
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!isDrawing.current || !lastPos.current) return;
     const pos = getPos(e);
     drawStroke(lastPos.current, pos);
+    onStroke?.(lastPos.current.x, lastPos.current.y, pos.x, pos.y);
     lastPos.current = pos;
   };
 
   const onPointerUp = () => {
+    if (!isDrawing.current) return;
     isDrawing.current = false;
     lastPos.current = null;
+    onDrawingChange?.(false);
   };
 
   return (

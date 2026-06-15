@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import MandalaCanvas from "@/components/MandalaCanvas";
-import Controls from "@/components/Controls";
 import RDCanvas from "@/components/RDCanvas";
+import type { RDHandle } from "@/components/RDCanvas";
+import Controls from "@/components/Controls";
 
 export type BlendMode = "source-over" | "screen" | "lighter";
 
@@ -14,17 +15,83 @@ export default function Home() {
   const [clearSignal, setClearSignal] = useState(0);
   const [blendMode, setBlendMode] = useState<BlendMode>("source-over");
 
+  const rdRef = useRef<RDHandle>(null);
+
+  useEffect(() => {
+    rdRef.current?.setColor(brushColor);
+  }, [brushColor]);
+
   const handleClear = useCallback(() => {
     setClearSignal((n) => n + 1);
+    rdRef.current?.clear();
   }, []);
 
-  const handleSave = useCallback(() => {
-    const canvas = document.querySelector("canvas");
-    if (!canvas) return;
+  const handleSave = useCallback(async () => {
+    const canvases = document.querySelectorAll("canvas");
+    if (canvases.length < 2) return;
+    const mandalaCanvas = canvases[0] as HTMLCanvasElement;
+    const rdCanvas = canvases[1] as HTMLCanvasElement;
+
+    // Capture both canvases as data URLs first
+    // (WebGPU canvas needs to be read while content is fresh)
+    const mandalaUrl = mandalaCanvas.toDataURL("image/png");
+    const rdUrl = rdCanvas.toDataURL("image/png");
+
+    // Load as Image objects so we can composite reliably
+    const load = (src: string): Promise<HTMLImageElement> =>
+      new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+
+    const [mandalaImg, rdImg] = await Promise.all([
+      load(mandalaUrl),
+      load(rdUrl),
+    ]);
+
+    const out = document.createElement("canvas");
+    out.width = mandalaCanvas.width;
+    out.height = mandalaCanvas.height;
+    const ctx = out.getContext("2d");
+    if (!ctx) return;
+
+    // Dark background
+    ctx.fillStyle = "#0a0a0a";
+    ctx.fillRect(0, 0, out.width, out.height);
+
+    // Mandala layer
+    ctx.drawImage(mandalaImg, 0, 0, out.width, out.height);
+
+    // RD layer with screen blend (matches CSS mixBlendMode)
+    ctx.globalCompositeOperation = "screen";
+    ctx.drawImage(rdImg, 0, 0, out.width, out.height);
+
     const link = document.createElement("a");
     link.download = `mandala-${Date.now()}.png`;
-    link.href = canvas.toDataURL("image/png");
+    link.href = out.toDataURL("image/png");
     link.click();
+  }, []);
+
+  const handleStroke = useCallback(
+    (fromX: number, fromY: number, toX: number, toY: number) => {
+      rdRef.current?.seed(
+        fromX,
+        fromY,
+        toX,
+        toY,
+        window.innerWidth,
+        window.innerHeight,
+        symmetry,
+        brushSize,
+      );
+    },
+    [symmetry, brushSize],
+  );
+
+  const handleDrawingChange = useCallback((active: boolean) => {
+    rdRef.current?.setDrawing(active);
   }, []);
 
   return (
@@ -35,8 +102,10 @@ export default function Home() {
         brushColor={brushColor}
         clearSignal={clearSignal}
         blendMode={blendMode}
+        onStroke={handleStroke}
+        onDrawingChange={handleDrawingChange}
       />
-      <RDCanvas />
+      <RDCanvas ref={rdRef} />
       <Controls
         symmetry={symmetry}
         setSymmetry={setSymmetry}
