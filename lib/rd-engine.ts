@@ -2,11 +2,12 @@ import { COMPUTE_SHADER, RENDER_SHADER } from "./shaders";
 
 const GRID_H = 512;
 const STEPS_PER_FRAME = 1; // one step per frame — avoids seed re-injection
-const FEED = 0.0367; // contained "spots" pattern
-const KILL = 0.0649;
+const FEED = 0.0545; // "coral" pattern — favors growth/propagation
+const KILL = 0.062;
 const DU = 0.2097;
 const DV = 0.105;
 const DT = 0.7; // faster progress per step now that we're at 1 step/frame
+const GROWTH_BUDGET_FRAMES = 7200; // ~2 min at 60fps — growth runs, then settles
 
 export class RDEngine {
   private device: GPUDevice;
@@ -24,6 +25,7 @@ export class RDEngine {
   private gridW: number;
   private gridH: number;
   private paused = false;
+  private growthBudget = 0;
 
   private constructor(
     device: GPUDevice,
@@ -289,6 +291,7 @@ export class RDEngine {
       const y = fromY + (toY - fromY) * t;
       this.stampSymmetric(x, y, screenW, screenH, symmetry, brushRadius);
     }
+    this.growthBudget = GROWTH_BUDGET_FRAMES;
   }
 
   private stampSymmetric(
@@ -384,6 +387,7 @@ export class RDEngine {
     );
 
     this.frame = 0;
+    this.growthBudget = 0;
   }
 
   /* ───────── per-frame ───────── */
@@ -391,7 +395,7 @@ export class RDEngine {
   tick() {
     const enc = this.device.createCommandEncoder();
 
-    if (!this.paused) {
+    if (!this.paused && this.growthBudget > 0) {
       // ALWAYS upload current seedData (zero unless user just drew this frame).
       // This makes seeds truly one-shot — the GPU forgets after each frame.
       this.device.queue.writeTexture(
@@ -402,7 +406,7 @@ export class RDEngine {
       );
       this.seedData.fill(0);
 
-      for (let i = 0; i < STEPS_PER_FRAME; i++) {
+      for (let i = 0; i < STEPS_PER_FRAME && this.growthBudget > 0; i++) {
         const pass = enc.beginComputePass();
         pass.setPipeline(this.computePipe);
         pass.setBindGroup(0, this.compBG[this.frame % 2]);
@@ -412,6 +416,7 @@ export class RDEngine {
         );
         pass.end();
         this.frame++;
+        this.growthBudget--;
       }
     }
 
