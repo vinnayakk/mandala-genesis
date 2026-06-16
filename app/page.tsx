@@ -16,28 +16,36 @@ export default function Home() {
   const [blendMode, setBlendMode] = useState<BlendMode>("source-over");
 
   const rdRef = useRef<RDHandle>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    rdRef.current?.setColor(brushColor);
-  }, [brushColor]);
+    const main = mainRef.current;
+    if (!main) return;
+    let hue = 0;
+    let rafId: number;
+    const tick = () => {
+      rafId = requestAnimationFrame(tick);
+      hue = (hue + 0.008) % 360;
+      main.style.backgroundColor = `hsl(${hue}, 30%, 4%)`;
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
 
   const handleClear = useCallback(() => {
     setClearSignal((n) => n + 1);
     rdRef.current?.clear();
   }, []);
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (includeRD: boolean) => {
     const canvases = document.querySelectorAll("canvas");
     if (canvases.length < 2) return;
     const mandalaCanvas = canvases[0] as HTMLCanvasElement;
     const rdCanvas = canvases[1] as HTMLCanvasElement;
 
-    // Capture both canvases as data URLs first
-    // (WebGPU canvas needs to be read while content is fresh)
     const mandalaUrl = mandalaCanvas.toDataURL("image/png");
-    const rdUrl = rdCanvas.toDataURL("image/png");
+    const rdUrl = includeRD ? rdCanvas.toDataURL("image/png") : null;
 
-    // Load as Image objects so we can composite reliably
     const load = (src: string): Promise<HTMLImageElement> =>
       new Promise((resolve, reject) => {
         const img = new Image();
@@ -46,10 +54,8 @@ export default function Home() {
         img.src = src;
       });
 
-    const [mandalaImg, rdImg] = await Promise.all([
-      load(mandalaUrl),
-      load(rdUrl),
-    ]);
+    const mandalaImg = await load(mandalaUrl);
+    const rdImg = rdUrl ? await load(rdUrl) : null;
 
     const out = document.createElement("canvas");
     out.width = mandalaCanvas.width;
@@ -64,9 +70,11 @@ export default function Home() {
     // Mandala layer
     ctx.drawImage(mandalaImg, 0, 0, out.width, out.height);
 
-    // RD layer with screen blend (matches CSS mixBlendMode)
-    ctx.globalCompositeOperation = "screen";
-    ctx.drawImage(rdImg, 0, 0, out.width, out.height);
+    // RD layer with screen blend — only if requested
+    if (rdImg) {
+      ctx.globalCompositeOperation = "screen";
+      ctx.drawImage(rdImg, 0, 0, out.width, out.height);
+    }
 
     const link = document.createElement("a");
     link.download = `mandala-${Date.now()}.png`;
@@ -95,7 +103,10 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="w-screen h-screen overflow-hidden bg-neutral-950">
+    <main
+      ref={mainRef}
+      className="w-screen h-screen overflow-hidden bg-neutral-950"
+    >
       <MandalaCanvas
         symmetry={symmetry}
         brushSize={brushSize}
@@ -116,7 +127,8 @@ export default function Home() {
         blendMode={blendMode}
         setBlendMode={setBlendMode}
         onClear={handleClear}
-        onSave={handleSave}
+        onSave={() => handleSave(true)}
+        onSaveMandalaOnly={() => handleSave(false)}
       />
     </main>
   );

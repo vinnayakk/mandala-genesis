@@ -1,6 +1,7 @@
 "use client";
 
 import { BlendMode } from "@/app/page";
+import { useState, useEffect } from "react";
 
 type Props = {
   symmetry: number;
@@ -13,7 +14,18 @@ type Props = {
   setBlendMode: (m: BlendMode) => void;
   onClear: () => void;
   onSave: () => void;
+  onSaveMandalaOnly: () => void;
 };
+
+const TIPS = [
+  "Neon + Glow love a chunky brush. Go big or go home.",
+  "Three strokes beat thirty. The canvas needs room to breathe.",
+  "Put the pen down. Watch what happens. It's still growing.",
+  "Mix Ink, Glow and Neon in one mandala. Chaos is the point.",
+  "Every stroke feeds the coral. It remembers everything you drew.",
+  "Glow dots aren't a bug — they're bioluminescence.",
+  "Symmetry 24 + tiny brush = a fever dream. You're welcome.",
+];
 
 const BLEND_MODES: { value: BlendMode; label: string }[] = [
   { value: "source-over", label: "Ink" },
@@ -32,11 +44,20 @@ export default function Controls({
   setBlendMode,
   onClear,
   onSave,
+  onSaveMandalaOnly,
 }: Props) {
+  const [tipIdx, setTipIdx] = useState(0);
+  useEffect(() => {
+    const id = setInterval(
+      () => setTipIdx((i) => (i + 1) % TIPS.length),
+      30000,
+    );
+    return () => clearInterval(id);
+  }, []);
   return (
     <div className="fixed top-4 left-4 z-10 bg-neutral-900/80 backdrop-blur-md text-neutral-100 p-4 rounded-lg border border-neutral-700 w-64 space-y-3 font-mono text-xs">
       <div className="text-neutral-400 uppercase tracking-widest text-[10px] mb-2">
-        Mandala Genesis · Phase 1
+        Mandala Genesis
       </div>
 
       <label className="block">
@@ -109,8 +130,18 @@ export default function Controls({
           onClick={onSave}
           className="flex-1 py-1.5 border border-neutral-700 hover:border-neutral-400 rounded transition-colors"
         >
-          Save PNG
+          Save
         </button>
+      </div>
+      <button
+        onClick={onSaveMandalaOnly}
+        className="w-full py-1 border border-neutral-800 hover:border-neutral-500 rounded transition-colors text-neutral-500 text-[10px]"
+      >
+        Save (mandala only)
+      </button>
+      <div className="pt-2 border-t border-neutral-800 text-neutral-600 text-[10px] leading-relaxed min-h-10">
+        <span className="text-white">TIP · </span>
+        {TIPS[tipIdx]}
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ const DU = 0.2097;
 const DV = 0.105;
 const DT = 0.7; // faster progress per step now that we're at 1 step/frame
 const GROWTH_BUDGET_FRAMES = 7200; // ~2 min at 60fps — growth runs, then settles
+const DEFAULT_RD_COLOR: [number, number, number] = [0.1255, 0.0824, 0.0157]; // muted brown (#201504), independent of brush colour
 
 export class RDEngine {
   private device: GPUDevice;
@@ -137,7 +138,7 @@ export class RDEngine {
     device.queue.writeBuffer(
       brushBuf,
       0,
-      new Float32Array([0.91, 0.84, 0.72, 1]),
+      new Float32Array([...DEFAULT_RD_COLOR, 1]),
     );
 
     const cMod = device.createShaderModule({ code: COMPUTE_SHADER });
