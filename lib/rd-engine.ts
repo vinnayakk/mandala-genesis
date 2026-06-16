@@ -1,13 +1,11 @@
 import { COMPUTE_SHADER, RENDER_SHADER } from "./shaders";
 
 const GRID_H = 512;
-const STEPS_PER_FRAME = 1; // one step per frame — avoids seed re-injection
 const FEED = 0.0545; // "coral" pattern — favors growth/propagation
 const KILL = 0.062;
 const DU = 0.2097;
 const DV = 0.105;
 const DT = 0.7; // faster progress per step now that we're at 1 step/frame
-const GROWTH_BUDGET_FRAMES = 7200; // ~2 min at 60fps — growth runs, then settles
 const DEFAULT_RD_COLOR: [number, number, number] = [0.1255, 0.0824, 0.0157]; // muted brown (#201504), independent of brush colour
 
 export class RDEngine {
@@ -27,6 +25,7 @@ export class RDEngine {
   private gridH: number;
   private paused = false;
   private growthBudget = 0;
+  private lastTickMs = 0; // for delta-time measurement
 
   private constructor(
     device: GPUDevice,
@@ -282,6 +281,7 @@ export class RDEngine {
     screenH: number,
     symmetry: number,
     brushRadius: number,
+    budget: number,
   ) {
     // Stamp continuously along the stroke segment, not just at endpoints
     const dist = Math.sqrt((toX - fromX) ** 2 + (toY - fromY) ** 2);
@@ -292,7 +292,7 @@ export class RDEngine {
       const y = fromY + (toY - fromY) * t;
       this.stampSymmetric(x, y, screenW, screenH, symmetry, brushRadius);
     }
-    this.growthBudget = GROWTH_BUDGET_FRAMES;
+    this.growthBudget = budget;
   }
 
   private stampSymmetric(
@@ -389,6 +389,7 @@ export class RDEngine {
 
     this.frame = 0;
     this.growthBudget = 0;
+    this.lastTickMs = 0;
   }
 
   /* ───────── per-frame ───────── */
@@ -397,8 +398,12 @@ export class RDEngine {
     const enc = this.device.createCommandEncoder();
 
     if (!this.paused && this.growthBudget > 0) {
-      // ALWAYS upload current seedData (zero unless user just drew this frame).
-      // This makes seeds truly one-shot — the GPU forgets after each frame.
+      const now = performance.now();
+      const dt =
+        this.lastTickMs === 0 ? 0 : Math.min(now - this.lastTickMs, 100);
+      this.lastTickMs = now;
+      this.growthBudget = Math.max(0, this.growthBudget - dt);
+
       this.device.queue.writeTexture(
         { texture: this.seedTex },
         this.seedData.buffer,
@@ -407,22 +412,20 @@ export class RDEngine {
       );
       this.seedData.fill(0);
 
-      for (let i = 0; i < STEPS_PER_FRAME && this.growthBudget > 0; i++) {
-        const pass = enc.beginComputePass();
-        pass.setPipeline(this.computePipe);
-        pass.setBindGroup(0, this.compBG[this.frame % 2]);
-        pass.dispatchWorkgroups(
-          Math.ceil(this.gridW / 8),
-          Math.ceil(this.gridH / 8),
-        );
-        pass.end();
-        this.frame++;
-        this.growthBudget--;
-      }
+      const computePass = enc.beginComputePass();
+      computePass.setPipeline(this.computePipe);
+      computePass.setBindGroup(0, this.compBG[this.frame % 2]);
+      computePass.dispatchWorkgroups(
+        Math.ceil(this.gridW / 8),
+        Math.ceil(this.gridH / 8),
+      );
+      computePass.end();
+      this.frame++;
+    } else {
+      this.lastTickMs = 0; // reset so delta doesn't jump after a pause
     }
 
-    // Always render current state (so canvas doesn't go black while paused)
-    const pass = enc.beginRenderPass({
+    const renderPass = enc.beginRenderPass({
       colorAttachments: [
         {
           view: this.ctx.getCurrentTexture().createView(),
@@ -432,10 +435,10 @@ export class RDEngine {
         },
       ],
     });
-    pass.setPipeline(this.renderPipe);
-    pass.setBindGroup(0, this.rendBG[this.frame % 2]);
-    pass.draw(4);
-    pass.end();
+    renderPass.setPipeline(this.renderPipe);
+    renderPass.setBindGroup(0, this.rendBG[this.frame % 2]);
+    renderPass.draw(4);
+    renderPass.end();
 
     this.device.queue.submit([enc.finish()]);
   }

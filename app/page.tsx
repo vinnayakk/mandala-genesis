@@ -14,6 +14,9 @@ export default function Home() {
   const [brushColor, setBrushColor] = useState("#e8d5b7");
   const [clearSignal, setClearSignal] = useState(0);
   const [blendMode, setBlendMode] = useState<BlendMode>("source-over");
+  const [growthDuration, setGrowthDuration] = useState(50000); // milliseconds (50 seconds)
+  const [coralOn, setCoralOn] = useState(true);
+  const [driftOn, setDriftOn] = useState(true);
 
   const rdRef = useRef<RDHandle>(null);
   const mainRef = useRef<HTMLDivElement>(null);
@@ -21,6 +24,10 @@ export default function Home() {
   useEffect(() => {
     const main = mainRef.current;
     if (!main) return;
+    if (!driftOn) {
+      main.style.backgroundColor = "#0a0a0a";
+      return;
+    }
     let hue = 0;
     let rafId: number;
     const tick = () => {
@@ -30,57 +37,61 @@ export default function Home() {
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, []);
+  }, [driftOn]);
 
   const handleClear = useCallback(() => {
     setClearSignal((n) => n + 1);
     rdRef.current?.clear();
   }, []);
 
-  const handleSave = useCallback(async (includeRD: boolean) => {
-    const canvases = document.querySelectorAll("canvas");
-    if (canvases.length < 2) return;
-    const mandalaCanvas = canvases[0] as HTMLCanvasElement;
-    const rdCanvas = canvases[1] as HTMLCanvasElement;
+  const handleSave = useCallback(
+    async (includeRD: boolean) => {
+      const canvases = document.querySelectorAll("canvas");
+      if (canvases.length < 2) return;
+      const mandalaCanvas = canvases[0] as HTMLCanvasElement;
+      const rdCanvas = canvases[1] as HTMLCanvasElement;
 
-    const mandalaUrl = mandalaCanvas.toDataURL("image/png");
-    const rdUrl = includeRD ? rdCanvas.toDataURL("image/png") : null;
+      const mandalaUrl = mandalaCanvas.toDataURL("image/png");
+      const rdUrl =
+        includeRD && coralOn ? rdCanvas.toDataURL("image/png") : null;
 
-    const load = (src: string): Promise<HTMLImageElement> =>
-      new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = src;
-      });
+      const load = (src: string): Promise<HTMLImageElement> =>
+        new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = src;
+        });
 
-    const mandalaImg = await load(mandalaUrl);
-    const rdImg = rdUrl ? await load(rdUrl) : null;
+      const mandalaImg = await load(mandalaUrl);
+      const rdImg = rdUrl ? await load(rdUrl) : null;
 
-    const out = document.createElement("canvas");
-    out.width = mandalaCanvas.width;
-    out.height = mandalaCanvas.height;
-    const ctx = out.getContext("2d");
-    if (!ctx) return;
+      const out = document.createElement("canvas");
+      out.width = mandalaCanvas.width;
+      out.height = mandalaCanvas.height;
+      const ctx = out.getContext("2d");
+      if (!ctx) return;
 
-    // Dark background
-    ctx.fillStyle = "#0a0a0a";
-    ctx.fillRect(0, 0, out.width, out.height);
+      // Dark background
+      ctx.fillStyle = "#0a0a0a";
+      ctx.fillRect(0, 0, out.width, out.height);
 
-    // Mandala layer
-    ctx.drawImage(mandalaImg, 0, 0, out.width, out.height);
+      // Mandala layer
+      ctx.drawImage(mandalaImg, 0, 0, out.width, out.height);
 
-    // RD layer with screen blend — only if requested
-    if (rdImg) {
-      ctx.globalCompositeOperation = "screen";
-      ctx.drawImage(rdImg, 0, 0, out.width, out.height);
-    }
+      // RD layer with screen blend — only if requested
+      if (rdImg) {
+        ctx.globalCompositeOperation = "screen";
+        ctx.drawImage(rdImg, 0, 0, out.width, out.height);
+      }
 
-    const link = document.createElement("a");
-    link.download = `mandala-${Date.now()}.png`;
-    link.href = out.toDataURL("image/png");
-    link.click();
-  }, []);
+      const link = document.createElement("a");
+      link.download = `mandala-${Date.now()}.png`;
+      link.href = out.toDataURL("image/png");
+      link.click();
+    },
+    [coralOn],
+  );
 
   const handleStroke = useCallback(
     (fromX: number, fromY: number, toX: number, toY: number) => {
@@ -93,9 +104,10 @@ export default function Home() {
         window.innerHeight,
         symmetry,
         brushSize,
+        growthDuration,
       );
     },
-    [symmetry, brushSize],
+    [symmetry, brushSize, growthDuration],
   );
 
   const handleDrawingChange = useCallback((active: boolean) => {
@@ -116,7 +128,7 @@ export default function Home() {
         onStroke={handleStroke}
         onDrawingChange={handleDrawingChange}
       />
-      <RDCanvas ref={rdRef} />
+      <RDCanvas ref={rdRef} visible={coralOn} />
       <Controls
         symmetry={symmetry}
         setSymmetry={setSymmetry}
@@ -126,6 +138,12 @@ export default function Home() {
         setBrushColor={setBrushColor}
         blendMode={blendMode}
         setBlendMode={setBlendMode}
+        growthDuration={growthDuration}
+        setGrowthDuration={setGrowthDuration}
+        coralOn={coralOn}
+        setCoralOn={setCoralOn}
+        driftOn={driftOn}
+        setDriftOn={setDriftOn}
         onClear={handleClear}
         onSave={() => handleSave(true)}
         onSaveMandalaOnly={() => handleSave(false)}

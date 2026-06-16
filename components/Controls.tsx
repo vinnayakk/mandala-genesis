@@ -12,6 +12,12 @@ type Props = {
   setBrushColor: (c: string) => void;
   blendMode: BlendMode;
   setBlendMode: (m: BlendMode) => void;
+  growthDuration: number;
+  setGrowthDuration: (n: number) => void;
+  coralOn: boolean;
+  setCoralOn: (v: boolean) => void;
+  driftOn: boolean;
+  setDriftOn: (v: boolean) => void;
   onClear: () => void;
   onSave: () => void;
   onSaveMandalaOnly: () => void;
@@ -42,6 +48,12 @@ export default function Controls({
   setBrushColor,
   blendMode,
   setBlendMode,
+  growthDuration,
+  setGrowthDuration,
+  coralOn,
+  setCoralOn,
+  driftOn,
+  setDriftOn,
   onClear,
   onSave,
   onSaveMandalaOnly,
@@ -119,6 +131,48 @@ export default function Controls({
         </div>
       </div>
 
+      <label className="block">
+        <div className="flex justify-between mb-1">
+          <span>Coral growth</span>
+          <span className="text-neutral-400">
+            {Math.round(growthDuration / 1000)}s
+          </span>
+        </div>
+        <input
+          type="range"
+          min={10000}
+          max={120000}
+          step={10000}
+          value={growthDuration}
+          onChange={(e) => setGrowthDuration(Number(e.target.value))}
+          className="w-full"
+        />
+      </label>
+      <div className="block">
+        <div className="mb-1">Visibility</div>
+        <div className="flex rounded border border-neutral-700 overflow-hidden">
+          <button
+            onClick={() => setCoralOn(!coralOn)}
+            className={`flex-1 py-1.5 transition-colors text-center ${
+              coralOn
+                ? "bg-neutral-100 text-neutral-900"
+                : "hover:bg-neutral-800 text-neutral-400"
+            }`}
+          >
+            Coral
+          </button>
+          <button
+            onClick={() => setDriftOn(!driftOn)}
+            className={`flex-1 py-1.5 transition-colors text-center ${
+              driftOn
+                ? "bg-neutral-100 text-neutral-900"
+                : "hover:bg-neutral-800 text-neutral-400"
+            }`}
+          >
+            Wave
+          </button>
+        </div>
+      </div>
       <div className="flex gap-2 pt-2">
         <button
           onClick={onClear}

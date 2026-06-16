@@ -13,19 +13,24 @@ export type RDHandle = {
     sh: number,
     sym: number,
     r: number,
+    budget: number,
   ) => void;
   setColor: (hex: string) => void;
   clear: () => void;
   setDrawing: (active: boolean) => void;
 };
 
-const RDCanvas = forwardRef<RDHandle>(function RDCanvas(_, ref) {
+type RDProps = { visible: boolean };
+const RDCanvas = forwardRef<RDHandle, RDProps>(function RDCanvas(
+  { visible },
+  ref,
+) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<RDEngine | null>(null);
 
   useImperativeHandle(ref, () => ({
-    seed: (fx, fy, tx, ty, sw, sh, sym, r) =>
-      engineRef.current?.seed(fx, fy, tx, ty, sw, sh, sym, r),
+    seed: (fx, fy, tx, ty, sw, sh, sym, r, budget) =>
+      engineRef.current?.seed(fx, fy, tx, ty, sw, sh, sym, r, budget),
     setColor: (hex) => engineRef.current?.setColor(hex),
     clear: () => engineRef.current?.clear(),
     setDrawing: (active) => engineRef.current?.setDrawing(active),
@@ -70,6 +75,7 @@ const RDCanvas = forwardRef<RDHandle>(function RDCanvas(_, ref) {
         width: "100vw",
         height: "100vh",
         mixBlendMode: "screen",
+        opacity: visible ? 1 : 0,
       }}
     />
   );
