@@ -449,7 +449,7 @@ export class RDEngine {
    * DT clamped to [0.2, 1.2] — below 0.2 is imperceptible, above 1.2 risks instability.
    */
   setAmplitude(amplitude: number): void {
-    const dt = Math.max(0.2, Math.min(1.2, 0.2 + amplitude * 2.0));
+    const dt = Math.max(0.05, Math.min(2.8, 0.05 + amplitude * 6.0));
     // DT is the 5th float in the uniform buffer → byte offset 16
     this.device.queue.writeBuffer(this.uniforms, 16, new Float32Array([dt]));
   }
