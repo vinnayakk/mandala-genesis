@@ -33,7 +33,8 @@ const TIPS = [
   "Every stroke feeds the coral. It remembers everything you drew.",
   "Glow dots aren't a bug — they're bioluminescence.",
   "Symmetry 24 + tiny brush = a fever dream. You're welcome.",
-  "Mic on + music = living coral. Every beat shifts the pattern.",
+  "Sound is stress. Loud enough, it bleaches the reef entirely.",
+  "Bleached reef can't self-recover. Draw new strokes to restore it.",
 ];
 
 const BLEND_MODES: { value: BlendMode; label: string }[] = [
@@ -157,7 +158,7 @@ export default function Controls({
 
       {/* ── Audio ── */}
       <div className="block">
-        <div className="mb-1">Audio</div>
+        <div className="mb-1">Audio (beta feature)</div>
         <button
           onClick={onMicToggle}
           className={`w-full py-1.5 rounded border transition-colors ${
@@ -166,7 +167,7 @@ export default function Controls({
               : "border-neutral-700 hover:border-neutral-400 text-neutral-400"
           }`}
         >
-          {micOn ? "Mic on — listening" : "Enable mic"}
+          {micOn ? "Listening — reef at risk" : "Sound sensitivity"}
         </button>
       </div>
 
