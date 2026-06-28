@@ -5,6 +5,7 @@ import MandalaCanvas from "@/components/MandalaCanvas";
 import RDCanvas from "@/components/RDCanvas";
 import type { RDHandle } from "@/components/RDCanvas";
 import Controls from "@/components/Controls";
+import { AudioEngine } from "@/lib/audio-engine";
 
 export type BlendMode = "source-over" | "screen" | "lighter";
 
@@ -19,6 +20,9 @@ export default function Home() {
   const [driftOn, setDriftOn] = useState(true);
 
   const rdRef = useRef<RDHandle>(null);
+  const audioRef = useRef<AudioEngine | null>(null);
+  const [micOn, setMicOn] = useState(false);
+  const ampBarRef = useRef<HTMLDivElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,6 +42,43 @@ export default function Home() {
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
   }, [driftOn]);
+
+  // ── Audio polling loop ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!micOn) return;
+    let frameId: number;
+    const poll = () => {
+      frameId = requestAnimationFrame(poll);
+      const amplitude = audioRef.current?.getAmplitude() ?? 0;
+      rdRef.current?.setAmplitude(amplitude);
+      if (ampBarRef.current)
+        ampBarRef.current.style.height = `${Math.max(2, amplitude * 64)}px`;
+    };
+    frameId = requestAnimationFrame(poll);
+    const rd = rdRef.current;
+    return () => {
+      cancelAnimationFrame(frameId);
+      rd?.resetAudioEffect();
+    };
+  }, [micOn]);
+
+  const handleMicToggle = useCallback(async () => {
+    if (!audioRef.current) {
+      audioRef.current = new AudioEngine();
+    }
+    if (audioRef.current.active) {
+      audioRef.current.stop();
+      setMicOn(false);
+    } else {
+      try {
+        await audioRef.current.start();
+        setMicOn(true);
+      } catch {
+        // Permission denied or no mic — button stays off, no crash
+        setMicOn(false);
+      }
+    }
+  }, []);
 
   const handleClear = useCallback(() => {
     setClearSignal((n) => n + 1);
@@ -129,6 +170,16 @@ export default function Home() {
         onDrawingChange={handleDrawingChange}
       />
       <RDCanvas ref={rdRef} visible={coralOn} />
+      {micOn && (
+        <div className="fixed bottom-4 left-4 z-10 flex items-end h-16 bg-neutral-900/80 backdrop-blur-md p-2 rounded border border-neutral-700">
+          <div
+            ref={ampBarRef}
+            className="w-3 bg-emerald-400 rounded-sm"
+            style={{ height: "2px" }}
+            title="Amplitude"
+          />
+        </div>
+      )}
       <Controls
         symmetry={symmetry}
         setSymmetry={setSymmetry}
@@ -144,6 +195,8 @@ export default function Home() {
         setCoralOn={setCoralOn}
         driftOn={driftOn}
         setDriftOn={setDriftOn}
+        micOn={micOn}
+        onMicToggle={handleMicToggle}
         onClear={handleClear}
         onSave={() => handleSave(true)}
         onSaveMandalaOnly={() => handleSave(false)}

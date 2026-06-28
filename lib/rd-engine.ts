@@ -443,6 +443,22 @@ export class RDEngine {
     this.device.queue.submit([enc.finish()]);
   }
 
+  /**
+   * Modulates simulation speed (DT) based on audio amplitude.
+   * amplitude=0 → very slow growth. amplitude=1 → fast, energetic growth.
+   * DT clamped to [0.2, 1.2] — below 0.2 is imperceptible, above 1.2 risks instability.
+   */
+  setAmplitude(amplitude: number): void {
+    const dt = Math.max(0.2, Math.min(1.2, 0.2 + amplitude * 2.0));
+    // DT is the 5th float in the uniform buffer → byte offset 16
+    this.device.queue.writeBuffer(this.uniforms, 16, new Float32Array([dt]));
+  }
+
+  /** Call when mic is turned off — restores baseline DT. */
+  resetAudioEffect(): void {
+    this.device.queue.writeBuffer(this.uniforms, 16, new Float32Array([DT]));
+  }
+
   dispose() {
     this.textures[0].destroy();
     this.textures[1].destroy();

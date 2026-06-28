@@ -18,6 +18,8 @@ export type RDHandle = {
   setColor: (hex: string) => void;
   clear: () => void;
   setDrawing: (active: boolean) => void;
+  setAmplitude: (amplitude: number) => void;
+  resetAudioEffect: () => void;
 };
 
 type RDProps = { visible: boolean };
@@ -34,6 +36,8 @@ const RDCanvas = forwardRef<RDHandle, RDProps>(function RDCanvas(
     setColor: (hex) => engineRef.current?.setColor(hex),
     clear: () => engineRef.current?.clear(),
     setDrawing: (active) => engineRef.current?.setDrawing(active),
+    setAmplitude: (amplitude) => engineRef.current?.setAmplitude(amplitude),
+    resetAudioEffect: () => engineRef.current?.resetAudioEffect(),
   }));
 
   useEffect(() => {

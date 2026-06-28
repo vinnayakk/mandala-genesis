@@ -18,6 +18,8 @@ type Props = {
   setCoralOn: (v: boolean) => void;
   driftOn: boolean;
   setDriftOn: (v: boolean) => void;
+  micOn: boolean;
+  onMicToggle: () => void;
   onClear: () => void;
   onSave: () => void;
   onSaveMandalaOnly: () => void;
@@ -31,6 +33,7 @@ const TIPS = [
   "Every stroke feeds the coral. It remembers everything you drew.",
   "Glow dots aren't a bug — they're bioluminescence.",
   "Symmetry 24 + tiny brush = a fever dream. You're welcome.",
+  "Mic on + music = living coral. Every beat shifts the pattern.",
 ];
 
 const BLEND_MODES: { value: BlendMode; label: string }[] = [
@@ -54,6 +57,8 @@ export default function Controls({
   setCoralOn,
   driftOn,
   setDriftOn,
+  micOn,
+  onMicToggle,
   onClear,
   onSave,
   onSaveMandalaOnly,
@@ -66,6 +71,7 @@ export default function Controls({
     );
     return () => clearInterval(id);
   }, []);
+
   return (
     <div className="fixed top-4 left-4 z-10 bg-neutral-900/80 backdrop-blur-md text-neutral-100 p-4 rounded-lg border border-neutral-700 w-64 space-y-3 font-mono text-xs">
       <div className="text-neutral-400 uppercase tracking-widest text-[10px] mb-2">
@@ -148,6 +154,23 @@ export default function Controls({
           className="w-full"
         />
       </label>
+
+      {/* ── Audio ── */}
+      <div className="block">
+        <div className="mb-1">Audio</div>
+        <button
+          onClick={onMicToggle}
+          className={`w-full py-1.5 rounded border transition-colors ${
+            micOn
+              ? "bg-neutral-100 text-neutral-900 border-neutral-100"
+              : "border-neutral-700 hover:border-neutral-400 text-neutral-400"
+          }`}
+        >
+          {micOn ? "Mic on — listening" : "Enable mic"}
+        </button>
+      </div>
+
+      {/* ── Visibility ── */}
       <div className="block">
         <div className="mb-1">Visibility</div>
         <div className="flex rounded border border-neutral-700 overflow-hidden">
@@ -173,6 +196,7 @@ export default function Controls({
           </button>
         </div>
       </div>
+
       <div className="flex gap-2 pt-2">
         <button
           onClick={onClear}
@@ -193,6 +217,7 @@ export default function Controls({
       >
         Save (mandala only)
       </button>
+
       <div className="pt-2 border-t border-neutral-800 text-neutral-600 text-[10px] leading-relaxed min-h-10">
         <span className="text-white">TIP · </span>
         {TIPS[tipIdx]}
